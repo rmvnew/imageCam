@@ -1,21 +1,30 @@
 package com.example.testephotos
 
+import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.os.Bundle
+import android.os.Environment
 import android.provider.MediaStore
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
+import androidx.core.content.FileProvider
 import com.example.testephotos.databinding.ActivityMainBinding
+import java.io.File
 
+private const val FILE_NAME = "photo.jpg"
+private const val REQUEST_CODE = 42
+private lateinit var photoFile: File
 
 class MainActivity : AppCompatActivity() {
 
 
     private lateinit var binding: ActivityMainBinding
-    
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -33,22 +42,61 @@ class MainActivity : AppCompatActivity() {
      * Activating the camera
      */
     private fun action() {
-        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, arrayOf(android.Manifest.permission.CAMERA), 111)
-        } else {
+
+        if (checkPermission()) {
             binding.button.isEnabled = true
             binding.button.setOnClickListener {
-                var i = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-                startActivityForResult(i, 101)
+                val takePictureIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+                photoFile = getPhotoFile(FILE_NAME)
+
+                val fileProvider = FileProvider.getUriForFile(
+                    this,
+                    "com.example.fileprovider",
+                    photoFile
+                )
+                takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, fileProvider)
+                if (takePictureIntent.resolveActivity(this.packageManager) != null) {
+                    startActivityForResult(takePictureIntent, REQUEST_CODE)
+                } else {
+                    Toast.makeText(this, "Unable to open camera", Toast.LENGTH_SHORT).show()
+                }
+
             }
         }
 
     }
 
+    private fun getPhotoFile(fileName: String): File {
+        val storageDirectory = getExternalFilesDir(Environment.DIRECTORY_PICTURES)
+        return File.createTempFile(fileName, ".jpg", storageDirectory)
+    }
+
+
+    fun checkPermission(): Boolean {
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                android.Manifest.permission.CAMERA
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(android.Manifest.permission.CAMERA),
+                111
+            )
+            return true
+        } else {
+            return false
+        }
+    }
+
     /**
      * Request permission
      */
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
 
         if (requestCode == 111 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
@@ -57,20 +105,25 @@ class MainActivity : AppCompatActivity() {
 
     }
 
-
     /**
      * Show image
      */
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
 
-        if (requestCode == 101) {
-            var pic = data?.getParcelableExtra<Bitmap>("data")
-            pic?.apply {
-                binding.imageView.setImageBitmap(pic)
+
+        if (requestCode == REQUEST_CODE && resultCode == Activity.RESULT_OK) {
+
+            val takenImage = BitmapFactory.decodeFile(photoFile.absolutePath)
+            takenImage?.apply {
+                binding.imageView.setImageBitmap(takenImage)
                 binding.imageView.setImageBitmap(rotate(-90F))
-
             }
+
+
+        } else {
+
+            super.onActivityResult(requestCode, resultCode, data)
+
         }
 
     }
@@ -84,13 +137,13 @@ class MainActivity : AppCompatActivity() {
         matrix.postRotate(degrees)
 
         return Bitmap.createBitmap(
-                this, // source bitmap
-                0, // x coordinate of the first pixel in source
-                0, // y coordinate of the first pixel in source
-                width, // The number of pixels in each row
-                height, // The number of rows
-                matrix, // Optional matrix to be applied to the pixels
-                false // true if the source should be filtered
+            this, // source bitmap
+            0, // x coordinate of the first pixel in source
+            0, // y coordinate of the first pixel in source
+            width, // The number of pixels in each row
+            height, // The number of rows
+            matrix, // Optional matrix to be applied to the pixels
+            false // true if the source should be filtered
         )
     }
 

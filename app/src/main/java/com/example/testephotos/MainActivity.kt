@@ -32,7 +32,6 @@ class MainActivity : AppCompatActivity() {
         val view = binding.root
         setContentView(view)
 
-        binding.button.isEnabled = false
 
         action()
 
@@ -43,8 +42,7 @@ class MainActivity : AppCompatActivity() {
      */
     private fun action() {
 
-        if (checkPermission()) {
-            binding.button.isEnabled = true
+
             binding.button.setOnClickListener {
                 val takePictureIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
                 photoFile = getPhotoFile(FILE_NAME)
@@ -62,7 +60,7 @@ class MainActivity : AppCompatActivity() {
                 }
 
             }
-        }
+
 
     }
 
@@ -72,38 +70,6 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-    fun checkPermission(): Boolean {
-        if (ActivityCompat.checkSelfPermission(
-                this,
-                android.Manifest.permission.CAMERA
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(android.Manifest.permission.CAMERA),
-                111
-            )
-            return true
-        } else {
-            return false
-        }
-    }
-
-    /**
-     * Request permission
-     */
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-
-        if (requestCode == 111 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            binding.button.isEnabled = true
-        }
-
-    }
 
     /**
      * Show image
